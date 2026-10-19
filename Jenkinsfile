@@ -30,19 +30,33 @@ pipeline {
             }
         }
 
-        stage('Smoke Test') {
-            steps {
-                sh '''
-                    set -eu
-                    docker run -d --name "$TEST_CONTAINER" "$IMAGE"
+stage('Smoke Test') {
+    steps {
+        sh '''
+            set -eu
 
-                    docker exec "$TEST_CONTAINER" \
-                        wget -q -O /dev/null http://127.0.0.1/
+            docker run -d --name "$TEST_CONTAINER" "$IMAGE"
 
-                    echo "Smoke test passed: Nginx returned a successful response."
-                '''
-            }
-        }
+            ready=0
+            for attempt in $(seq 1 15); do
+                if docker exec "$TEST_CONTAINER" \
+                    wget -q -O /dev/null http://127.0.0.1/; then
+                    ready=1
+                    break
+                fi
+                sleep 2
+            done
+
+            if [ "$ready" -ne 1 ]; then
+                echo "Smoke test failed: Nginx did not become ready."
+                docker logs "$TEST_CONTAINER" || true
+                exit 1
+            fi
+
+            echo "Smoke test passed: Nginx served the page successfully."
+        '''
+    }
+}
     }
 
     post {
