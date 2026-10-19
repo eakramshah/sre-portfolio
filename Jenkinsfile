@@ -41,7 +41,7 @@ stage('Security Scan - Trivy') {
                 aquasec/trivy:latest \
                 image \
                 --severity HIGH,CRITICAL \
-                --exit-code 0 \
+                --exit-code 1 \
                 "$IMAGE"
         '''
     }
